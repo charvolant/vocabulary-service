@@ -1,0 +1,294 @@
+openapi: "3.0.0"
+info:
+  title: "ALA vocabulary service"
+  description: >
+    Web services for the vocabulary services.
+    These services produce an extended form of JSON for linked data (JSON-LD) where a resource is described with sufficient
+    context that a presentation layer doesn't need to do much processing to see what to display.
+    In particular, a number of additional '@' tags are used:
+    <ul>
+      <li><strong>@shortId</strong> The namespace-shortened version of the @id (Resource IRI)</li>
+      <li><strong>@label</strong> A brief label for the resource</li>
+      <li><strong>@title</strong> A title for the resource</li>
+      <li><strong>@description</strong> A description of the resource</li>
+      <li><strong>@count</strong> The total number of resource that could match the request (for paginated results)</li>
+    </ul>
+  version: "1.0"
+  termsOfServices: "http://www.ala.org.au/"
+  contact:
+    name: "ALA Support"
+    url: "http://www.ala.org.au/"
+    email: "support@ala.org.au"
+  license:
+    name: "ALA licence"
+    url: "http://www.ala.org.au/"
+paths:
+  /resource:
+    get:
+      summary: List resources
+      description: Get a list of vocabulary resources
+      tags:
+      - resource
+      parameters:
+      - $ref: '#/components/parameters/Offset'
+      - $ref: '#/components/parameters/MaxRows'
+      - $ref: '#/components/parameters/AcceptLanguage'
+      responses:
+        200:
+          description: Return a summary list of resources
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JSONLD'
+  /resource/references:
+    get:
+      summary: List references to a resource
+      description: Get a list of resources that refer a particular resource
+      tags:
+      - resource
+      parameters:
+      - $ref: '#/components/parameters/IRI'
+      - $ref: '#/components/parameters/Offset'
+      - $ref: '#/components/parameters/MaxRows'
+      - $ref: '#/components/parameters/AcceptLanguage'
+      responses:
+        200:
+          description: Return a summary list of resources
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JSONLD'
+  /resource/terms:
+    get:
+      summary: Get vocabulary terms
+      description: >
+        Get all the terms for a list of vocabularies.
+        The vocabularies are chosen by the Darwin Core terms the vocabularies are intended to provide
+        a controlled vocabulary for.
+        If the vocabulary list is not supplied, all terms for all Darwin Core vocabularies are returned
+      tags:
+      - resource
+      parameters:
+      - name: v
+        in: query
+        description: A darwin code term for which there us a vocabulary
+        style: form
+        explode: true
+        schema:
+          type: array
+          items:
+            type: string
+            format: url
+            example: 	http://rs.tdwg.org/dwc/terms/nomenclaturalCode
+      responses:
+        200:
+          descriptiopn: Sucessfully return a list of terms
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JSONLD'
+  /resource/show:
+    get:
+      summary: Retrieve a resource
+      description: Get detailed information about a resource.
+      tags:
+      - resource
+      parameters:
+      - $ref: '#/components/parameters/IRI'
+      - $ref: '#/components/parameters/AcceptLanguage'
+      responses:
+        200:
+          description: Successfully return a resource
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JSONLD'
+  /resource/search:
+    get:
+      summary: Search for resources
+      description: Get a list of resources where some property contains the supplied text
+      tags:
+      - resource
+      parameters:
+      - name: q
+        in: query
+        description: The query text
+        schema:
+          type: string
+          example: code
+      - $ref: '#/components/parameters/Offset'
+      - $ref: '#/components/parameters/MaxRows'
+      - $ref: '#/components/parameters/AcceptLanguage'
+      responses:
+        200:
+          description: Return a list of matching resources
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JSONLD'
+  /resource/types:
+    get:
+      summary: List RDF types
+      description: Get a list of the RDF types used by resources
+      tags:
+      - resource
+      parameters:
+      - $ref: '#/components/parameters/Offset'
+      - $ref: '#/components/parameters/MaxRows'
+      - $ref: '#/components/parameters/AcceptLanguage'
+      responses:
+        200:
+          description: Return a list of matching types
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JSONLD'
+  /admin/clearCaches:
+    get:
+      summary: Clear cached information abourt resources
+      description: Empties pre-build and cached information, forcing a requry of the underlying triple store
+      tags:
+      - admin
+      responses:
+        200:
+          description: Successfully clear the caches
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    description: Whether the clear operation was successful
+  /tag/css:
+    get:
+      summary: Get CSS for tags
+      description: >
+        Concepts that are labelled as tags -- via an RDF class of http://www.ala.org.au/format/1.0/Concept --
+        have a CSS class attached to them.
+        This method returns a CSS document that can be used by web browsers to interpret the attaches CSS
+        classes.
+      tags:
+      - tags
+      responses:
+        200:
+          description: Return tag CSS
+          content:
+            text/css:
+              description: Tag CSS document
+  /tag/js:
+    get:
+      summary: Get Javascript for tags
+      description: >
+        Concepts that are labelled as tags -- via an RDF class of http://www.ala.org.au/format/1.0/Concept --
+        have descriptive data attached to the,.
+        This method returns JavaScript that can be used to re-interpret tag entries with additional
+        contextual information.
+      tags:
+      - tags
+      responses:
+        200:
+          description: Return tag JavaScript
+          content:
+            text/javascript:
+              description: Tag JavaScript document
+components:
+  schemas:
+    JSONLD:
+      type: object
+      description: >
+        Linked data in the JSON-LD format.
+        This format mostly conforms to the JSON-LD specification but contains a few additional special
+        values that can be used to ease rendering the resulting document.
+      properties:
+        '@id':
+          type: string
+          description: The IRI of the resource
+        '@type':
+          type: string
+          description: The type of the resource
+        '@language':
+          type: string
+          description: The default ISO language code
+        '@context':
+          description: The map of contextual objects from their IRIs onto object descriptions
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/JSONLD'
+        '@label':
+          type: string
+          description: Additional property, a short label for the resource. Where possible, a label in a language specified in the <code>Accept-Language</code> header will be selected.
+        '@title':
+          type: string
+          description: Additional property, a title for the resource. Where possible, a title in a language specified in the <code>Accept-Language</code> header will be selected.
+        '@description':
+          type: string
+          description: Additional property, a descripiton of the resource. Where possible description in a language specified in the <code>Accept-Language</code> header will be selected.
+        '@shortId':
+          type: string
+          description: The id, namespace encoded
+        '@count':
+          type: integer
+          format: int32
+          description: >
+            Additional property, the total number of elements that could be returned in a graph.
+            The count can be used to paginate results.
+        '@graph':
+          type: array
+          description: A list of resources
+          items:
+            $ref: '#/components/schemas/JSONLD'
+  parameters:
+    IRI:
+      name: iri
+      in: query
+      description: The Internationalised Resource Indicator (IRI) of a resource
+      required: true
+      schema:
+        type: string
+        format: uri
+      example: http://www.ala.org.au/terms/1.0/nomenclaturalCode/ICN
+    AcceptLanguage:
+      name: Accept-Language
+      in: header
+      description: >
+        The HTTP header that advertises languages that the client would prefer.
+        If possible labels and descriptions are chosen accoreding to the preferred language.
+        The language can either be a simple 2-letter ISO language code or a full language-country
+        locale tag.
+      required: false
+      schema:
+        type: string
+      example: fr
+    Offset:
+      name: offset
+      in: query
+      description: The offset to start retrieving results from, to allow pagination
+      required: false
+      schema:
+        type: integer
+        format: int32
+        default: 0
+      example: 100
+    MaxRows:
+      name: max
+      in: query
+      description: The maximum number of rows to retrieve.
+      required: false
+      schema:
+        type: integer
+        format: int32
+        default: 10
+      example: 20
+tags:
+- name: resource
+  description: Query resources
+- name: admin
+  description: Service administration
+- name: tags
+  description: Manage the display of vocabulary that can be shown as tags
+externalDocs:
+  description: JSON-LD Specification
+  url: https://json-ld.org/spec/latest/json-ld/
+
+
