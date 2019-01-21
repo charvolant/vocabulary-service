@@ -67,7 +67,8 @@ dependencies {
 
     // ALA Plugins
     compile group: 'au.org.ala.grails.plugin', name: 'vocabulary-plugin', version: '1.0-SNAPSHOT', changing: true
-
+    compile group: 'org.grails.plugins', name: 'ala-auth', version: '3.1.0'
+    compile group: 'org.grails.plugins', name: 'ala-admin-plugin', version: '2.1'
     compile(group: 'org.grails.plugins', name: 'ala-bootstrap3', version: '3.0.6') {
         exclude group: 'com.bertramlabs.plugins', module: 'asset-pipeline-grails'
     }

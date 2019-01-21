@@ -88,6 +88,11 @@ public class Format {
     public static final IRI ICON = FACTORY.createIRI(NAMESPACE, "icon");
 
     /**
+     * The format:languageType property
+     */
+    public static final IRI LANGUAGE_TYPE =  FACTORY.createIRI(NAMESPACE, "languageType");
+
+    /**
      * The format:priority property
      */
     public static final IRI PRIORITY = FACTORY.createIRI(NAMESPACE, "priority");

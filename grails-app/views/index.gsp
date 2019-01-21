@@ -7,6 +7,11 @@
     <asset:stylesheet src="swagger-ui.css"/>
 </head>
 <body>
+<div>
+    <auth:ifAllGranted roles="ROLE_ADMIN">
+        <g:link controller="admin" action="index" class="btn bth-warning"><g:message code="page.admin.index.menu"/></g:link>
+    </auth:ifAllGranted>
+</div>
 <div role="main" id="swagger-ui">
 </div>
 <asset:script type="application/javascript">

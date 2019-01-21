@@ -43,8 +43,28 @@ public class ALA {
     /* properties */
 
     /**
+     * The name used to label a term in CSV
+     */
+    public static final IRI CSV_NAME = FACTORY.createIRI(NAMESPACE, "csvName");
+
+    /**
      * The ala:DwCVocabulary class
      */
     public static final IRI FOR_TERM = FACTORY.createIRI(NAMESPACE, "forTerm");
+
+    /**
+     * The name used to label a term in JSON
+     */
+    public static final IRI JSON_NAME= FACTORY.createIRI(NAMESPACE, "jsonName");
+
+    /**
+     * The name used to label a term in a SOLR index
+     */
+    public static final IRI SOLR_NAME = FACTORY.createIRI(NAMESPACE, "solrTerm");
+
+    /**
+     * The status of an object
+     */
+    public static final IRI STATUS = FACTORY.createIRI(NAMESPACE, "status");
 }
 

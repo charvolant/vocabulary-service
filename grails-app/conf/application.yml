@@ -56,6 +56,8 @@ grails:
             pdf: application/pdf
             rss: application/rss+xml
             text: text/plain
+            turtle:
+              - text/turtle
             hal:
               - application/hal+json
               - application/hal+xml
@@ -67,6 +69,9 @@ grails:
             maxsize: 1000
     controllers:
         defaultScope: singleton
+        upload:
+          maxFileSize: 26214400
+          maxRequestSize: 26214400
     converters:
         encoding: UTF-8
     views:
@@ -129,6 +134,15 @@ environments:
                 jdbcInterceptors: ConnectionState
                 defaultTransactionIsolation: 2 # TRANSACTION_READ_COMMITTED
 ---
+grails:
+  serverURL: http://dev.ala.org.au:8090
+security:
+  cas:
+    appServerName: http://dev.ala.org.au:8090
+    uriFilterPattern: /,/admin.*,/alaAdmin.*
+    uriExclusionFilterPattern: ''
+  apikey:
+    serviceUrl: https://auth.ala.org.au/apikey/ws/check?apikey='
 repository:
   service: http://localhost:8080/rdf4j-server/
   id: ala
@@ -140,7 +154,14 @@ format:
 tags:
   cacheFor: 3600
 skin:
-  layout: generic
+  layout: main
   orgNameLong: Atlas of Living Australia
   fluidLayout: false
+import:
+  biocache:
+    index:
+      fields: https://biocache.ala.org.au/ws/index/fields
+languages:
+  tag:
+    default: xul,wbp
 
