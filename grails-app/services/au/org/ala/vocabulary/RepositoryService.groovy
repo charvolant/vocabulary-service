@@ -32,6 +32,7 @@ class RepositoryService {
     PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
     PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
     PREFIX dcterms: <http://purl.org/dc/terms/>
+    PREFIX afn: <http://jena.hpl.hp.com/ARQ/function#> 
     PREFIX ala: <${ALA.NAMESPACE}>
     PREFIX format: <${Format.NAMESPACE}>
 """
@@ -39,9 +40,9 @@ class RepositoryService {
     static SORT = """
     OPTIONAL { ?resource skos:prefLabel ?pl }
     OPTIONAL { ?resource rdfs:label ?rl }
-    OPTIONAL { ?resource skos:notation ?nl }
     OPTIONAL { ?resource dcterms:title ?dl }
-    BIND (LCASE(COALESCE(?pl, ?rl, ?nl, ?dl, REPLACE(str(?resource), ".*[/:]", ""))) AS ?sort)
+    OPTIONAL { ?resource skos:notation ?nl }
+    BIND (LCASE(COALESCE(?pl, ?rl, ?dl, ?tl, afn:localname(?resource))) AS ?sort)
 """
 
     def repositoryBean
