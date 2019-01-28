@@ -7,11 +7,8 @@ info:
     context that a presentation layer doesn't need to do much processing to see what to display.
     In particular, a number of additional '@' tags are used:
     <ul>
-      <li><strong>@shortId</strong> The namespace-shortened version of the @id (Resource IRI)</li>
-      <li><strong>@label</strong> A brief label for the resource</li>
-      <li><strong>@title</strong> A title for the resource</li>
-      <li><strong>@description</strong> A description of the resource</li>
       <li><strong>@count</strong> The total number of resource that could match the request (for paginated results)</li>
+      <li><string>@categorisation</strong> A structured organisation of the properties in the data (for layout)</li>
     </ul>
   version: "1.0"
   termsOfServices: "http://www.ala.org.au/"
@@ -215,18 +212,15 @@ components:
           type: object
           additionalProperties:
             $ref: '#/components/schemas/JSONLD'
-        '@label':
-          type: string
-          description: Additional property, a short label for the resource. Where possible, a label in a language specified in the <code>Accept-Language</code> header will be selected.
-        '@title':
-          type: string
-          description: Additional property, a title for the resource. Where possible, a title in a language specified in the <code>Accept-Language</code> header will be selected.
-        '@description':
-          type: string
-          description: Additional property, a descripiton of the resource. Where possible description in a language specified in the <code>Accept-Language</code> header will be selected.
-        '@shortId':
-          type: string
-          description: The id, namespace encoded
+        '@categorisation':
+          description: A list of categories in order of priority
+          type: object
+          additionalProperties:
+            description: The properties in this category
+            type: array
+            items:
+              description: A property name (usually a namespaced IRI)
+              type: string
         '@count':
           type: integer
           format: int32

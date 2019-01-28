@@ -1,12 +1,8 @@
 package au.org.ala.vocabulary.model
 
-import com.sun.istack.internal.Nullable
+
 import org.eclipse.rdf4j.model.IRI
 import org.eclipse.rdf4j.model.Namespace
-import org.grails.core.io.ResourceLocator
-
-import javax.naming.Name
-import java.util.concurrent.ConcurrentHashMap
 
 /**
  * Contextual information for a model.
@@ -31,7 +27,22 @@ class Context {
     }
 
     /**
+     * Get a reference to an IRI.
+     * <p>
+     * External or reference not found in the context are rendered in full, otherwide the short label is returned.
+     * </p>
+     *
+     * @param iri The IRI
+     * @return The reference to the IRI
+     */
+    String getReference(IRI iri) {
+        return resources.containsKey(iri) ? shortLabel(iri) : iri.stringValue()
+    }
+
+    /**
      * Get a, preferably namespaced, name for an IRI
+     * <p>
+     * This is returned only if the context contains the IRI
      *
      * @param iri The IRI
      *

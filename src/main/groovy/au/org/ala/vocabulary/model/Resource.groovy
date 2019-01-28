@@ -5,11 +5,7 @@ import org.eclipse.rdf4j.model.IRI
 import org.eclipse.rdf4j.model.Literal
 import org.eclipse.rdf4j.model.Statement
 import org.eclipse.rdf4j.model.Value
-import org.eclipse.rdf4j.model.vocabulary.DC
-import org.eclipse.rdf4j.model.vocabulary.DCTERMS
 import org.eclipse.rdf4j.model.vocabulary.RDF
-import org.eclipse.rdf4j.model.vocabulary.RDFS
-import org.eclipse.rdf4j.model.vocabulary.SKOS
 import org.eclipse.rdf4j.model.vocabulary.XMLSchema
 
 /**
@@ -128,6 +124,42 @@ class Resource implements Cloneable {
     }
 
     /**
+     * Find a locale-preferred statement for something.
+     * <p>
+     * Possible terms are first searched for a language/country tag that matches, then a language tag, and then any value
+     *
+     * @param locale The preferred locale
+     * @param sources Possible sources of the term
+     *
+     * @return The result
+     */
+    Value findStatement(Locale locale, IRI... sources) {
+        def tag = locale?.toLanguageTag()
+        def lang = locale?.language
+        for (IRI source: sources) {
+            def match
+            if (tag) {
+                match = statements.find {
+                    (it.predicate == source) && (it.object instanceof Literal) && it.object.language?.present && it.object.language.get() == tag
+                }
+                if (match)
+                    return match.object
+            }
+            if (lang) {
+                match = statements.find {
+                    (it.predicate == source) && (it.object instanceof Literal) && it.object.language?.present && it.object.language.get() == lang
+                }
+                if (match)
+                    return match.object
+            }
+            match = statements.find { (it.predicate == source) && (it.object instanceof Literal) }
+            if (match)
+                return match.object
+        }
+        return null
+    }
+
+    /**
      * Find a locale-preferred term for something.
      * <p>
      * Possible terms are first searched for a language/country tag that matches, then a language tag, and then any value
@@ -138,29 +170,7 @@ class Resource implements Cloneable {
      * @return The result
      */
     String findTerm(Locale locale, IRI... sources) {
-        def tag = locale?.toLanguageTag()
-        def lang = locale?.language
-        for (IRI source: sources) {
-            def match
-            if (tag) {
-                match = statements.find {
-                    (it.predicate == source) && (it.object instanceof Literal) && it.object.language?.present && it.object.language.get() == tag
-                }
-                if (match)
-                    return match.object.stringValue()
-            }
-            if (lang) {
-                match = statements.find {
-                    (it.predicate == source) && (it.object instanceof Literal) && it.object.language?.present && it.object.language.get() == lang
-                }
-                if (match)
-                    return match.object.stringValue()
-            }
-            match = statements.find { (it.predicate == source) && (it.object instanceof Literal) }
-            if (match)
-                return match.object.stringValue()
-        }
-        return null
+        return findStatement(locale, sources)?.stringValue()
     }
 
     /**

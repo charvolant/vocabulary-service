@@ -1,14 +1,15 @@
 package au.org.ala.vocabulary
 
-import au.org.ala.vocabulary.model.AssetResolver
+
 import au.org.ala.vocabulary.model.Categorisation
 import au.org.ala.vocabulary.model.Context
 import au.org.ala.vocabulary.model.Resource
-import com.sun.istack.internal.Nullable
 import org.apache.commons.jcs.JCS
 import org.apache.commons.jcs.access.CacheAccess
 import org.eclipse.rdf4j.model.*
 import org.eclipse.rdf4j.model.impl.SimpleValueFactory
+import org.eclipse.rdf4j.model.vocabulary.RDF
+import org.eclipse.rdf4j.model.vocabulary.XMLSchema
 import org.eclipse.rdf4j.query.BindingSet
 import org.eclipse.rdf4j.query.QueryLanguage
 import org.eclipse.rdf4j.query.TupleQuery
@@ -127,47 +128,35 @@ class RepositoryService {
      * @return The context
      */
     Context getContext(Collection<Resource> resources, Categorisation categorisation) {
-        Set<IRI> predicates = [] as Set
+        Set<IRI> base = resources.collect({ r -> r.iri }) as Set
+        Set<IRI> seen = [] as Set
+        Set<String> nsUsed = [RDF.NAMESPACE, XMLSchema.NAMESPACE] as Set
         Map<IRI, Resource> entries = [:]
-        resources.each { resource ->
-            addResource(resource, entries, predicates)
-        }
-        categorisation.categorisation.keySet().each { iri ->
-            entries[iri] = getResource(iri)
-        }
-        predicates.each { p ->
-            def pred = getResource(p)
-            entries[p] = pred
-            addResource(pred, entries, null )
-        }
-        return new Context(namespaces, entries)
-    }
-
-    /**
-     * Add a resource, recursively if we have embedded resources.
-     *
-     * @param resource The resource to add
-     * @param entries The map of entries
-     * @param predicates The set of predicates (null to stop recording predicates)
-     * @return
-     */
-    private def addResource(Resource resource, Map<IRI, Resource> entries, @Nullable Set<IRI> predicates) {
-        resource.statements.each { s ->
-            predicates?.add(s.predicate)
-            if (s.object in IRI && !entries.containsKey(s.object)) {
-                def object = getResource(s.object)
-                entries[s.object] = object
-                object.statements.each { os ->
-                    def pred = getResource(os.predicate)
-                    if (pred.hasValue(Format.EMBED, true) && os.object in IRI && !entries.containsKey(os.object)) {
-                        def embedded = getResource(os.object)
-                        predicates?.add(os.predicate)
-                        entries[os.object] = embedded
-                        addResource(embedded, entries, predicates)
-                    }
+        Queue<IRI> workQueue = new ArrayDeque<>(base)
+        workQueue.addAll(categorisation.categorisation.keySet())
+        workQueue.addAll(categorisation.categories)
+        while (!workQueue.empty) {
+            IRI iri = workQueue.remove()
+            if (seen.contains(iri))
+                continue
+            seen.add(iri)
+            nsUsed.add(iri.namespace)
+            def resource = getResource(iri)
+            if (!base.contains(iri))
+                entries[iri] = resource
+            resource.statements.each { s ->
+                workQueue.add(s.predicate)
+                if (s.object in IRI && !seen.contains(s.object)) {
+                    def pred = getResource(s.predicate)
+                    if (base.contains(iri) || pred.hasValue(Format.EMBED, true))
+                        workQueue.add(s.object as IRI)
                 }
+                if (s.object in Literal && (s.object as Literal).datatype)
+                    workQueue.add((s.object as Literal).datatype)
             }
         }
+        def nsp = namespaces.findAll { ns -> nsUsed.contains(ns.value.name) }
+        return new Context(nsp, entries)
     }
 
     /**

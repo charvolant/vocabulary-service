@@ -1,15 +1,10 @@
 package au.org.ala.vocabulary.model
 
-import au.org.ala.vocabulary.Format
+
 import org.eclipse.rdf4j.model.IRI
 import org.eclipse.rdf4j.model.Literal
 import org.eclipse.rdf4j.model.Value
-import org.eclipse.rdf4j.model.vocabulary.DC
-import org.eclipse.rdf4j.model.vocabulary.DCTERMS
-import org.eclipse.rdf4j.model.vocabulary.RDF
-import org.eclipse.rdf4j.model.vocabulary.RDFS
-import org.eclipse.rdf4j.model.vocabulary.SKOS
-import org.eclipse.rdf4j.model.vocabulary.XMLSchema
+import org.eclipse.rdf4j.model.vocabulary.*
 
 import java.text.SimpleDateFormat
 
@@ -22,6 +17,7 @@ import java.text.SimpleDateFormat
 class JSONLDBuilder {
     static DATE_FORMAT = new SimpleDateFormat('yyyy-MM-dd')
     static DATE_TIME_FORMAT = new SimpleDateFormat('yyyy-MM-dd\'T\'HH:mm:ss.SSSXXX')
+    static SIMPLE_PREDICATES = [ SKOS.PREF_LABEL, RDFS.LABEL, DCTERMS.TITLE, DC.TITLE, RDFS.COMMENT, DCTERMS.DESCRIPTION, DC.DESCRIPTION ] as Set
 
     /** The preferred locale */
     Locale locale
@@ -34,10 +30,10 @@ class JSONLDBuilder {
         def jsonld = new LinkedHashMap() // Ensure order of results
         jsonld['@id'] = resource.iri.stringValue()
         jsonld['@language'] = locale.language
-        jsonld.putAll(this.render(resource, true, null))
-        jsonld['@context'] = this.render(context, true, null)
+        jsonld.putAll(this.render(resource, true, false, null))
+        jsonld['@context'] = this.render(context, true, true, null)
         if (categorisation)
-            jsonld['@categorisation'] = this.render(categorisation, null)
+            jsonld['@categorisation'] = this.render(categorisation, true,null)
         return jsonld
     }
 
@@ -46,76 +42,64 @@ class JSONLDBuilder {
         jsonld['@language'] = locale.language
         if (count != null) // Allow a count of 0
             jsonld['@count'] = count
-        jsonld['@graph'] = list.collect { this.render(it, true, null) }
-        jsonld['@context'] = this.render(context, true, null)
+        jsonld['@graph'] = list.collect { this.render(it, true, false, null) }
+        jsonld['@context'] = this.render(context, true, true, null)
         if (categorisation)
-            jsonld['@categorisation'] = this.render(categorisation, null)
+            jsonld['@categorisation'] = this.render(categorisation, true, null)
         return jsonld
     }
 
-    def render(Context context, boolean expand, Resolver resolver) {
+    def render(Context context, boolean expand, boolean simple, Resolver resolver) {
         def jsonld = new LinkedHashMap()
         jsonld.putAll((context.namespaces.values() as Set).collectEntries { [(it.prefix): it.name] })
-        jsonld.putAll(context.resources.collectEntries { [(context.shortLabel(it.key)): render(it.value, expand, resolver)]})
+        jsonld.putAll(context.resources.collectEntries { [(context.shortLabel(it.key)): render(it.value, expand, simple, resolver)]})
         return jsonld
     }
 
-    def render(Categorisation categorisation, Resolver resolver) {
+    def render(Categorisation categorisation, boolean simple, Resolver resolver) {
         def jsonld = new LinkedHashMap()
         categorisation.categories.each { category ->
             def predicates = categorisation.categorisation[category]
-            jsonld[context.shortLabel(category)] = predicates.collect { predicate -> context.shortLabel(predicate)}
+            jsonld[context.shortLabel(category)] = predicates.collect { predicate -> context.getReference(predicate)}
         }
         return jsonld
     }
 
-    def render(Resource resource, boolean expand, Resolver resolver) {
+    def render(Resource resource, boolean expand, boolean simple, Resolver resolver) {
         def jsonld = new LinkedHashMap() // Ensure order of results
         jsonld['@id'] = resource.iri.stringValue()
-        jsonld['@type'] = render(resource.getStatements(RDF.TYPE), null) ?: '@id'
-        def label = resource.findTerm(locale, SKOS.PREF_LABEL, RDFS.LABEL, SKOS.NOTATION)
-        jsonld['@label'] = label ?: resource.iri.localName
-        jsonld['@shortId'] = context.shortLabel(resource.iri)
-        def title = resource.findTerm(locale, DCTERMS.TITLE, DC.TITLE)
-        if (title) {
-            if (!label && title.length() < 32) {
-                jsonld['@label'] = title
-            }
-            jsonld['@title'] = title
-        }
-        def description = resource.findTerm(locale, DCTERMS.DESCRIPTION, DC.DESCRIPTION, RDFS.COMMENT)
-        if (description)
-            jsonld['@description'] = description
+        jsonld['@type'] = render(resource.getStatements(RDF.TYPE), false, null) ?: '@id'
         if (expand) {
             def predicates = new ArrayList<IRI>(resource.predicates)
             predicates = predicates.sort(true, { p1, p2 -> context.shortLabel(p1).compareTo(context.shortLabel(p2)) })
             predicates.each { p ->
                 def r = context.resolver(p) ?: resolver
-                jsonld[context.shortLabel(p)] = render(resource.getStatements(p), r)
+                def s = (simple && SIMPLE_PREDICATES.contains(p)) ? resource.findStatement(locale, p) : resource.getStatements(p)
+                jsonld[context.getReference(p)] = render(s, simple, r)
             }
         } else {
         }
         return jsonld
     }
 
-    def render(List<Value> values, Resolver resolver) {
+    def render(List<Value> values, boolean simple, Resolver resolver) {
         if (!values)
             return null
         if (values.size() == 1)
-            return render(values.first(), resolver)
+            return render(values.first(), simple, resolver)
         values.sort(new ValueComparator())
-        return values.collect { render(it, resolver) }
+        return values.collect { render(it, simple, resolver) }
     }
 
-    def render(IRI iri, Resolver resolver) {
+    def render(IRI iri, boolean simple, Resolver resolver) {
         if (resolver != null)
-            return render(resolver.resolve(iri), null)
-        return context.shortLabel(iri)
+            return render(resolver.resolve(iri), simple, null)
+        return context.getReference(iri)
     }
 
-    def render(Literal literal, Resolver resolver) {
+    def render(Literal literal, boolean simple, Resolver resolver) {
         if (resolver != null)
-            return render(resolver.resolve(literal), null)
+            return render(resolver.resolve(literal), simple, null)
         def jsonld = new LinkedHashMap()
         def datatype = literal.datatype ?: XMLSchema.STRING
         def value = literal.label
@@ -149,15 +133,15 @@ class JSONLDBuilder {
         }
         jsonld['@value'] = value
         if (datatype != XMLSchema.STRING)
-            jsonld['@type'] = datatype.stringValue()
+            jsonld['@type'] = context.getReference(datatype)
         if (literal.language.present)
             jsonld['@language'] = literal.language.get()
         return jsonld
     }
 
-    def render(Value value, Resolver resolver) {
+    def render(Value value, boolean simple, Resolver resolver) {
         if (resolver != null)
-            return render(resolver.resolve(value), null)
+            return render(resolver.resolve(value), simple, null)
         return value.stringValue()
     }
 
