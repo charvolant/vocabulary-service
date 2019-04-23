@@ -108,10 +108,14 @@ class JSONLDBuilder {
                 value = literal.booleanValue()
                 break
             case XMLSchema.DATE:
-                value = DATE_FORMAT.format(literal.calendarValue())
+                def calendar = literal.calendarValue()
+                if (calendar)
+                    value = DATE_FORMAT.format(calendar.toGregorianCalendar().time)
                 break
             case XMLSchema.DATETIME:
-                value = DATE_TIME_FORMAT.format(literal.calendarValue())
+                def calendar = literal.calendarValue()
+                if (calendar)
+                    value = DATE_TIME_FORMAT.format(literal.calendarValue().toGregorianCalendar().time)
                 break
             case XMLSchema.DECIMAL:
                 value = literal.decimalValue()

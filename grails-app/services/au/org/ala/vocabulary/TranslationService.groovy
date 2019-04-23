@@ -46,9 +46,10 @@ class TranslationService {
     Model process639(MultipartFile nameFile, MultipartFile macroFile, String tagLanguages, Locale locale, boolean complete) {
         def valueFactory = repositoryService.valueFactory
         def defaultType = TYPE_639_MAP['U']
-        def namespace = ALA.NAMESPACE + "iso639"
+        def namespace = ALAVocabulary.NAMESPACE + "iso639"
         def source = valueFactory.createIRI('http://www.iso639-3.sil.org')
         def builder = new ModelBuilder()
+        builder.setNamespace(ALAVocabulary.PREFIX, ALAVocabulary.NAMESPACE)
         builder.setNamespace(ALA.PREFIX, ALA.NAMESPACE)
         builder.setNamespace(Format.PREFIX, Format.NAMESPACE)
         builder.setNamespace(SKOS.PREFIX, SKOS.NAMESPACE)
@@ -130,7 +131,7 @@ class TranslationService {
                 builder.add(RDFS.LABEL, lang.name)
                 lang.alts.each { alt -> builder.add(SKOS.ALT_LABEL, alt)}
                 if (lang.part1Iri)
-                    builder.add(OWL.SAMEAS, lang.part1Iri)
+                    builder.add(SKOS.EXACT_MATCH, lang.part1Iri)
                 if (lang.comment)
                     builder.add(RDFS.COMMENT, lang.comment)
                 lang.types.each { type -> builder.add(Format.LANGUAGE_TYPE, type) }
@@ -145,7 +146,7 @@ class TranslationService {
                     builder.add(SKOS.IN_SCHEME, vocabulary)
                     builder.add(SKOS.NOTATION, lang.part1)
                     builder.add(RDFS.LABEL, lang.name)
-                    builder.add(OWL.SAMEAS, lang.iri)
+                    builder.add(SKOS.EXACT_MATCH, lang.iri)
                     lang.types.each { type -> builder.add(Format.LANGUAGE_TYPE, type) }
                     builder.add(DCTERMS.SOURCE, source)
 
@@ -170,6 +171,7 @@ class TranslationService {
         def dwcSource = valueFactory.createIRI('http://rs.tdwg.org/dwc/terms')
         def alaSource = valueFactory.createIRI(biocacheIndexFields.toExternalForm())
         def builder = new ModelBuilder()
+        builder.setNamespace(ALAVocabulary.PREFIX, ALAVocabulary.NAMESPACE)
         builder.setNamespace(ALA.PREFIX, ALA.NAMESPACE)
         builder.setNamespace(Format.PREFIX, Format.NAMESPACE)
         builder.setNamespace(SKOS.PREFIX, SKOS.NAMESPACE)
