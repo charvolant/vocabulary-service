@@ -189,6 +189,69 @@ paths:
           content:
             text/javascript:
               description: Tag JavaScript document
+  /skos/tree:
+    get:
+      summary: Get a complete tree for a SKOS concept or scheme
+      description: >
+        Build a complete tree of the concept scheme that a SKOS concept or scheme is in.
+        The tree always starts from the top-level scheme and includes all elements in the hierarchy.
+      tags:
+        - skos
+      parameters:
+        - $ref: '#/components/parameters/IRI'
+        - $ref: '#/components/parameters/AcceptLanguage'
+      responses:
+        200:
+          description: Return tag JavaScript
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SKOSTree'
+  /skos/parents:
+    get:
+      summary: Get the parents of a SKOS concept
+      description: >
+        Build a list if parent concepts for this concept.
+        Since a concept may have multiple concepts, the result is a list of lists of parents at a specific level.
+      tags:
+        - skos
+      parameters:
+        - $ref: '#/components/parameters/IRI'
+        - $ref: '#/components/parameters/AcceptLanguage'
+      responses:
+        200:
+          description: Return tag JavaScript
+          content:
+            application/json:
+              schema:
+                type: array
+                description: >
+                  A list of SKOS parents, ordered by broadness
+                items:
+                  type: array
+                  description: A specific parent level. A concept may have multiple parents, all gathered at this level.
+                  items:
+                    $ref: '#/components/schemas/SKOSConcept'
+  /skos/children:
+    get:
+      summary: Get the immediate children of a SKOS concept
+      description: >
+        Make a list of the immediate child concepts of a SKOS concept
+      tags:
+        - skos
+      parameters:
+        - $ref: '#/components/parameters/IRI'
+        - $ref: '#/components/parameters/AcceptLanguage'
+      responses:
+        200:
+          description: Return tag JavaScript
+          content:
+            application/json:
+              schema:
+                type: array
+                description: A list of child concepts
+                items:
+                  $ref: '#/components/schemas/SKOSConcept'
 components:
   schemas:
     JSONLD:
@@ -232,6 +295,30 @@ components:
           description: A list of resources
           items:
             $ref: '#/components/schemas/JSONLD'
+    SKOSTree:
+      type: array
+      description: >
+        A tree of SKOS concepts with appropriate labels
+      items:
+        type: object
+        properties:
+          resource:
+            $ref: '#/components/schemas/SKOSConcept'
+          children:
+            type: array
+            description: A list of child concepts, also in tree form
+            items:
+              $ref: '#/components/schemas/SKOSTree'
+    SKOSConcept:
+      description: A concept or scheme entry
+      type: object
+      properties:
+        iri:
+          type: string
+          description: The IRI of the concept
+        label:
+          type: string
+          description: The language-specific label for the concept
   parameters:
     IRI:
       name: iri
@@ -281,6 +368,8 @@ tags:
   description: Service administration
 - name: tags
   description: Manage the display of vocabulary that can be shown as tags
+- name: skos
+  description: Information about the simple knowledge organisation system (SKOS) concept hierarchy
 externalDocs:
   description: JSON-LD Specification
   url: https://json-ld.org/spec/latest/json-ld/

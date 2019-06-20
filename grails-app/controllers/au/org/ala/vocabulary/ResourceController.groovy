@@ -20,7 +20,7 @@ class ResourceController {
         render builder.build(list.resources, list.count) as JSON
     }
 
-    def list() {
+    def index() {
         def offset = params.offset as Integer ?: 0
         def max = params.max as Integer ?: 10
         def type = params.type ?: ALA.DWC_VOCABULARY.stringValue()

@@ -1,14 +1,33 @@
 package au.org.ala.vocabulary
 
-
+import au.org.ala.util.ResourceUtils
+import au.org.ala.vocabulary.model.Resource
+import grails.config.Config
+import grails.core.support.GrailsConfigurationAware
 import org.eclipse.rdf4j.model.IRI
+import org.eclipse.rdf4j.model.Literal
 
-class ResourceService {
+class ResourceService implements GrailsConfigurationAware {
     def categorisationService
     def repositoryService
 
+    /** The sources for labels */
+    List<List<IRI>> labelSources
+    /** The sources for titles */
+    List<List<IRI>> titleSources
+    /** The sources for descriptions */
+    List<List<IRI>> descriptionSources
+
     static final TYPE_QUERY = "SELECT DISTINCT ?type WHERE { ?_resource a ?type. }"
     static final TYPE_COUNT_QUERY = "SELECT (count(?type) as ?count) WHERE { ${TYPE_QUERY} }"
+
+    @Override
+    void setConfiguration(Config config) {
+        def toIRI = { list1 -> list1.collect { list2 -> list2.collect { iri -> repositoryService.valueFactory.createIRI(iri) } } }
+        labelSources = toIRI(config.vocabulary.label.sources)
+        titleSources = toIRI(config.vocabulary.title.sources)
+        descriptionSources = toIRI(config.vocabulary.description.source)s
+    }
 
     /**
      * List the types of resource available
@@ -105,4 +124,99 @@ class ResourceService {
         def context = repositoryService.getContext(resource, categorisation)
         return [resource: resource, context: context, categorisation: categorisation]
     }
+
+    /**
+     * Get a suitable label (short descriptive text) for a resource as a JSON-LD map
+     *
+     * @param resource The resource as
+     * @param locale The preferred locale
+     *
+     * @return A label, or none for not present
+     */
+    def getLabel(Resource resource, Locale locale) {
+        def label = getText(resource, labelSources, locale)
+        if (label)
+            return label
+        def iri = resource.iri
+        return contract(iri) ?: iri.localName
+    }
+
+    /**
+     * Get a suitable title (short headline text) for a resource
+     *
+     * @param resource The resource
+     * @param locale The preferred locale
+     *
+     * @return A title, or none for not present
+     */
+    def getTitle(Resource resource, Locale locale) {
+        return getText(resource, titleSources, locale)
+    }
+
+    /**
+     * Get a suitable description (long descriptive text) for a resource
+     *
+     * @param resource The resource
+     * @param context The resource context
+     * @param locale The preferred locale
+     *
+     * @return A description, or none for not present
+     */
+    def getDescription(Resource resource, Locale locale) {
+        return getText(resource, descriptionSources, locale)
+    }
+
+    /**
+     * Search for a suitable property.
+     * <p>
+     * Groups of sources are searched in order first for a language tag match, then for a language match and then for a value.
+     * If one is not found, then the next group of sources is tried.
+     * </p>
+     * <p>
+     * For example, if the sources are <code>[[dcterms:title, >dc:title]]</code>, the locale is 'fr-CA' and the possible values are
+     * <code>dcterms:title = ['chercheuse'@fr, 'researcher' ] dc:title = ['chercheure'@fr-CA ]</code> will result in 'chercheure'.
+     * If the sources are <code>[[skos:prefLabel], [rdfs:label]]</code>, the locale is 'fr-CA' and the possible values
+     * are <code>skos:prefLabel = ['tofu'@fr, 'tahu'], rdfs:label = ['toffu'@fr-CA ]</code> with result in 'tofu'
+     * </p>
+     *
+     * @param resource The resource
+     * @param sources The sources, a list of lists of
+     * @param locale The locale to use
+     *
+     * @return A suitable value or null for not found
+     */
+    protected def getText(Resource resource, List<List<String>> sources, Locale locale) {
+        if (!resource)
+            return null
+        def lt = locale.toLanguageTag()
+        def ln = locale.language
+        def finders = [{ it in Literal && it.language.present && it.language.get() == lt }, { it in Literal && it.language.present && it.language.get() == ln }, { it in Literal && !it.language.present } ]
+        for (List<String> group: sources) {
+            for (Closure<Boolean> finder: finders) {
+                for (String source : group) {
+                    def siri = repositoryService.valueFactory.createIRI(source)
+                    def labels = resource.getStatements(siri)
+                    if (!labels)
+                        continue
+                    Literal lab = (labels in Iterable) ? labels.find(finder) : (finder(labels) ? labels : null)
+                    if (lab)
+                        return lab.stringValue()
+                }
+            }
+        }
+        return null
+    }
+
+    /**
+     * Make a namespace contracte version of an IRI
+     *
+     * @param iri The IRI
+     *
+     * @return The contracted version
+     */
+    def contract(IRI iri) {
+        def ns = repositoryService.namespaces.values().find { n -> iri.namespace == n.name }
+        return ns ? ns.prefix + ':' + iri.localName : null
+    }
+
 }

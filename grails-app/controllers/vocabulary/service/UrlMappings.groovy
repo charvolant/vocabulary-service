@@ -1,9 +1,8 @@
-package au.org.ala.vocabulary
+package vocabulary.service
 
 class UrlMappings {
 
     static mappings = {
-        "/$controller" ( action: 'list' )
         "/$controller/$action" ()
         "/"(view:"/index")
         "500"(view:'/error')

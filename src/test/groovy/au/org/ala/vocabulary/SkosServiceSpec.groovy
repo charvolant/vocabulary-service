@@ -1,9 +1,9 @@
 package au.org.ala.vocabulary
 
-import grails.testing.web.controllers.ControllerUnitTest
+import grails.testing.services.ServiceUnitTest
 import spock.lang.Specification
 
-class AdminControllerSpec extends Specification implements ControllerUnitTest<AdminController> {
+class SkosServiceSpec extends Specification implements ServiceUnitTest<SkosService>{
 
     def setup() {
     }

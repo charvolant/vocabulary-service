@@ -27,5 +27,6 @@
     window.ui = ui
 }
 </asset:script>
+<asset:deferredScripts/>
 </body>
 </html>

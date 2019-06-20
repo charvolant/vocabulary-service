@@ -112,7 +112,7 @@ class RepositoryService {
      *
      * @return The context
      */
-    Context getContext(Resource resource, Categorisation categorisation) {
+    Context getContext(Resource resource, Categorisation categorisation = null) {
         return getContext([ resource ], categorisation)
     }
 
@@ -127,14 +127,16 @@ class RepositoryService {
      *
      * @return The context
      */
-    Context getContext(Collection<Resource> resources, Categorisation categorisation) {
+    Context getContext(Collection<Resource> resources, Categorisation categorisation = null) {
         Set<IRI> base = resources.collect({ r -> r.iri }) as Set
         Set<IRI> seen = [] as Set
         Set<String> nsUsed = [RDF.NAMESPACE, XMLSchema.NAMESPACE] as Set
         Map<IRI, Resource> entries = [:]
         Queue<IRI> workQueue = new ArrayDeque<>(base)
-        workQueue.addAll(categorisation.categorisation.keySet())
-        workQueue.addAll(categorisation.categories)
+        if (categorisation) {
+            workQueue.addAll(categorisation.categorisation.keySet())
+            workQueue.addAll(categorisation.categories)
+        }
         while (!workQueue.empty) {
             IRI iri = workQueue.remove()
             if (seen.contains(iri))
@@ -389,7 +391,7 @@ class RepositoryService {
     protected Resource get(IRI iri, RepositoryConnection connection, boolean extend) {
         def resource = resources.get(iri)
         if (!resource)  {
-            RepositoryResult<Statement> smts = connection.getStatements(iri, (IRI) null, null, false)
+            RepositoryResult<Statement> smts = connection.getStatements(iri, (IRI) null, null, true)
             resource = new Resource(iri, smts)
             resources.put(iri, resource)
             resource.statements.each { s -> // Get contextual information

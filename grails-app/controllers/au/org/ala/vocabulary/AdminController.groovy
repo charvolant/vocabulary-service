@@ -62,6 +62,11 @@ class AdminController {
         Rio.write(model, response.outputStream, fmt)
     }
 
+    /**
+     * Translate sources of Darwin Core terms into RDF
+     *
+     * @param cmd The source command
+     */
     def processDwC(TranslateCommand cmd) {
         if (!cmd || cmd.hasErrors()) {
             render view: 'index', model: [cmd: cmd]
@@ -77,6 +82,25 @@ class AdminController {
     }
 
 
+    /**
+     * Translate a table of ranks into RDF.
+     *
+     * @param cmd The source command
+     */
+    def processRanks(TranslateCommand cmd) {
+        if (!cmd || cmd.hasErrors()) {
+            render view: 'index', model: [cmd: cmd]
+            return
+        }
+        Model model = translationService.processRanks(cmd.rankFile, request.locale, cmd.complete)
+        RDFFormat fmt = RDFFormat.matchMIMEType(cmd.format, [RDFFormat.TURTLE, RDFFormat.JSONLD, RDFFormat.RDFXML]).orElse(RDFFormat.TURTLE)
+        response.characterEncoding = "UTF-8"
+        //response.setHeader('Content-Disposition', "Attachment;Filename=\"dwc.${fmt.defaultFileExtension}\"")
+        response.setHeader('Content-Disposition', "inline")
+        response.contentType = fmt.defaultMIMEType
+        Rio.write(model, response.outputStream, fmt)
+    }
+
 }
 
 class TranslateCommand implements Validateable {
@@ -88,6 +112,8 @@ class TranslateCommand implements Validateable {
     MultipartFile macroFile
     /** The CSV file containing darwin core terms */
     MultipartFile dwcFile
+    /** The CSV file containing ranks */
+    MultipartFile rankFile
     /** The biocache index fields */
     URL biocacheIndexFields
     /** The list of taggable translation codes */
@@ -109,6 +135,7 @@ class TranslateCommand implements Validateable {
         nameFile nullable: true, validator: fileValidator.curry('iso639')
         macroFile nullable: true, validator: fileValidator.curry('iso639')
         dwcFile nullable: true, validator: fileValidator.curry('dwc')
+        rankFile nullable: true, validator: fileValidator.curry('rank')
         tagLanguages nullable: true, matches: '[a-z]{3}?(,[a-z]{3})*'
         biocacheIndexFields nullable: true, url: true
     }

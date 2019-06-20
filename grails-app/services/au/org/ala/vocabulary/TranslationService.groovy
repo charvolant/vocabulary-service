@@ -1,11 +1,10 @@
 package au.org.ala.vocabulary
 
-import au.org.ala.util.ResourceUtils
+
 import au.org.ala.util.TitleCapitaliser
 import com.opencsv.CSVParserBuilder
 import com.opencsv.CSVReaderBuilder
 import groovy.json.JsonSlurper
-import org.apache.commons.validator.Form
 import org.eclipse.rdf4j.model.Model
 import org.eclipse.rdf4j.model.util.ModelBuilder
 import org.eclipse.rdf4j.model.vocabulary.DCTERMS
@@ -14,6 +13,7 @@ import org.eclipse.rdf4j.model.vocabulary.RDF
 import org.eclipse.rdf4j.model.vocabulary.RDFS
 import org.eclipse.rdf4j.model.vocabulary.SKOS
 import org.eclipse.rdf4j.model.vocabulary.XMLSchema
+import org.gbif.dwc.terms.DwcTerm
 import org.springframework.web.multipart.MultipartFile
 
 class TranslationService {
@@ -348,4 +348,99 @@ class TranslationService {
         }
         return builder.build()
     }
+
+
+    /**
+     * Process a table of ranks
+     *
+     * @param rankFile The file containing the Darwin code terms
+     * @param locale The locale for text info
+     * @param complete Include all terms
+     *
+     * @return An RDF model of the results
+     */
+    Model processRanks(MultipartFile rankFile, Locale locale, boolean complete) {
+        def valueFactory = repositoryService.valueFactory
+        def nomenclaturalCode = valueFactory.createIRI(DwcTerm.nomenclaturalCode.toString())
+        def builder = new ModelBuilder()
+        builder.setNamespace(ALAVocabulary.PREFIX, ALAVocabulary.NAMESPACE)
+        builder.setNamespace(ALA.PREFIX, ALA.NAMESPACE)
+        builder.setNamespace(Format.PREFIX, Format.NAMESPACE)
+        builder.setNamespace(SKOS.PREFIX, SKOS.NAMESPACE)
+        builder.setNamespace(RDF.PREFIX, RDF.NAMESPACE)
+        builder.setNamespace(RDFS.PREFIX, RDFS.NAMESPACE)
+        builder.setNamespace(OWL.PREFIX, OWL.NAMESPACE)
+        builder.setNamespace(DCTERMS.PREFIX, DCTERMS.NAMESPACE)
+        def rankVocabulary = valueFactory.createIRI('http://www.ala.org.au/vocabulary/1.0/taxonRanks')
+        def rankSource = valueFactory.createIRI('https://github.com/AtlasOfLivingAustralia/ala-name-matching/blob/master/src/main/java/au/org/ala/names/model/RankType.java')
+        builder.subject(rankVocabulary)
+        builder.add(RDF.TYPE, SKOS.CONCEPT_SCHEME)
+        builder.add(RDFS.LABEL, messageSource.getMessage('page.admin.processRanks.ranks.label', null, locale))
+        builder.add(RDFS.COMMENT, messageSource.getMessage('page.admin.processRanks.ranks.comment', null, locale))
+        builder.add(DCTERMS.SOURCE, rankSource)
+        def ranks = []
+        String[] line
+        // Read the term defintions
+        def reader = new InputStreamReader(rankFile.inputStream, 'UTF-8')
+        def parser = new CSVParserBuilder().withSeparator(',' as char).withQuoteChar('"' as char).withIgnoreLeadingWhiteSpace(true).build()
+        def csv = new CSVReaderBuilder(reader).withSkipLines(1).withCSVParser(parser).build()
+        while ((line = csv.readNext()) != null) {
+            def iri = valueFactory.createIRI(rankVocabulary.stringValue() + "/" + line[0].trim().replaceAll("\\s+", "_")) // Dated IRI
+            def label = line[0].trim()
+            def rankID = line[1]?.toInteger()
+            def gbifRank = line[2]
+            def marker = line[3]
+            def linnaean = line[4]?.toBoolean()
+            def code = line[5]
+            def loose = line[6]?.toBoolean()
+            def legacy = line[7]?.toBoolean()
+            def sortOrder = line[8]?.toInteger()
+            def aka = line[9]?.split(",\\s*").collect({ it.trim() }).findAll({ !it.isEmpty() })
+            def term = [
+                    iri: iri,
+                    notation: label,
+                    label: label,
+                    rankID: rankID,
+                    marker: marker,
+                    linnaean: linnaean,
+                    code: code,
+                    loose: loose,
+                    legacy: legacy,
+                    sortOrder: sortOrder,
+                    aka: aka.findAll({  !it.startsWith('http:') }),
+                    sameAs: aka.findAll({ it.startsWith('http:')}),
+                    current: !legacy
+            ]
+            ranks << term
+        }
+
+        // Construct a model for the definitions
+        ranks.each { term ->
+            if (complete || term.current) {
+                builder.subject(term.iri)
+                builder.add(RDF.TYPE, ALA.TAXON_RANK)
+                if (!term.legacy)
+                    builder.add(RDF.TYPE, Format.CONCEPT)
+                builder.add(SKOS.IN_SCHEME, rankVocabulary)
+                builder.add(SKOS.NOTATION, term.notation)
+                builder.add(RDFS.LABEL, term.label)
+                builder.add(ALA.RANK_ID, term.rankID)
+                term.aka.each { builder.add(SKOS.ALT_LABEL, it) }
+                if (term.linnaean)
+                    builder.add(ALA.IS_LINNAEAN_RANK, term.linnaean)
+                builder.add(ALA.STATUS, term.legacy ? "legacy" : "current")
+                if (term.code)
+                    builder.add(nomenclaturalCode, valueFactory.createIRI('http://www.ala.org.au/vocabulary/1.0/nomenclaturalCode/' + term.code))
+                if (term.loose)
+                    builder.add(ALA.IS_LOOSE_RANK, term.loose)
+                if (term.sortOrder)
+                    builder.add(ALA.SORT_ORDER, term.sortOrder)
+                if (term.marker)
+                    builder.add(ALA.RANK_MARKER, term.marker)
+                term.sameAs.each { builder.add(OWL.SAMEAS, valueFactory.createIRI(it)) }
+            }
+         }
+        return builder.build()
+    }
 }
+

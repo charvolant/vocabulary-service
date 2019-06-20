@@ -40,6 +40,11 @@ public class ALA {
      */
     public static final IRI DWC_VOCABULARY = FACTORY.createIRI(NAMESPACE, "DwCVocabulary");
 
+    /**
+     * The ala:TaxonRank class
+     */
+    public static final IRI TAXON_RANK = FACTORY.createIRI(NAMESPACE, "TaxonRank");
+
     /* properties */
 
     /**
@@ -66,5 +71,31 @@ public class ALA {
      * The status of an object
      */
     public static final IRI STATUS = FACTORY.createIRI(NAMESPACE, "status");
+
+    /**
+     * Is this a linnaean concept?
+     */
+    public static final IRI IS_LINNAEAN_RANK = FACTORY.createIRI(NAMESPACE, "isLinnaeanRank");
+
+    /**
+     * Is this a loose concept?
+     */
+    public static final IRI IS_LOOSE_RANK = FACTORY.createIRI(NAMESPACE, "isLooseRank");
+
+    /**
+     * The rank identifier
+     */
+    public static final IRI RANK_ID = FACTORY.createIRI(NAMESPACE, "rankID");
+
+    /**
+     * The rank marker (used in scientific names)
+     */
+    public static final IRI RANK_MARKER = FACTORY.createIRI(NAMESPACE, "rankMarker");
+
+    /**
+     * The sort order of an object
+     */
+    public static final IRI SORT_ORDER = FACTORY.createIRI(NAMESPACE, "sortOrder");
+
 }
 

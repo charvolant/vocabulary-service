@@ -104,6 +104,40 @@
             </g:uploadForm>
         </div>
     </div>
+    <div class="row">
+        <div class="col-md-12">
+            <h2><g:message code="label.rank-upload"/></h2>
+            <g:message code="label.rank-upload.detail"/>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-12">
+            <g:uploadForm action="processRanks">
+                <g:hiddenField name="translation" value="rnaks"/>
+                <div class="form-group">
+                    <label for="rankFile"><g:message code="label.rankFile"/></label>
+                    <span class="text-danger"><g:fieldError field="rankFile" bean="${cmd}"/></span>
+                    <g:field id="rankFile" name="rankFile" type="file" required="true" class="form-control"/>
+                    <p class="help-block"><g:message code="label.rankFile.detail"/></p>
+                </div>
+                <div class="form-group">
+                    <label for="complete-ranks" class="form-check-label">
+                        <g:checkBox id="complete-ranks" name="complete" value="${cmd.complete}"/>
+                        <g:message code="label.complete"/>
+                        <g:fieldError field="complete" bean="${cmd}"/>
+                    </label>
+                    <p class="help-block"><g:message code="label.complete.detail"/></p>
+                </div>
+                <div class="form-group">
+                    <label for="format-ranks" class><g:message code="label.format"/></label>
+                    <span class="text-danger"><g:fieldError field="format" bean="${cmd}"/></span>
+                    <g:select id="format-ranks" name="format" from="${['text/turtle', 'application/ld+json', 'application/rdf+xml']}" value="${cmd.format}"/>
+                    <p class="help-block"><g:message code="label.format.detail"/></p>
+                </div>
+                <button type="submit" class="btn btn-primary"><g:message code="label.process"/></button>
+            </g:uploadForm>
+        </div>
+    </div>
 </div>
 </body>
 </html>
