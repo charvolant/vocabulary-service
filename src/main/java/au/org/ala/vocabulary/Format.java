@@ -10,7 +10,7 @@ import org.eclipse.rdf4j.model.impl.SimpleValueFactory;
  * Vocabulary constants for the ALA Format vocabulary.
  *
  * @author Doug Palmer &lt;Doug.Palmer@csiro.au&gt;
- * @copyright Copyright &copy; 2018 Atlas of Living Australia
+ * @license See LICENSE
  */
 public class Format {
     /**

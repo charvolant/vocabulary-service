@@ -10,7 +10,7 @@ import org.eclipse.rdf4j.model.impl.SimpleValueFactory;
  * Vocabulary constants for the ALA vocabulary.
  *
  * @author Doug Palmer &lt;Doug.Palmer@csiro.au&gt;
- * @copyright Copyright &copy; 2018 Atlas of Living Australia
+ * @license See LICENSE
  */
 public class ALA {
     /**
@@ -44,6 +44,11 @@ public class ALA {
      * The ala:TaxonRank class
      */
     public static final IRI TAXON_RANK = FACTORY.createIRI(NAMESPACE, "TaxonRank");
+
+    /**
+     * The ala:AIATSISLanguage class
+     */
+    public static final IRI AIATSIS_LANGUAGE = FACTORY.createIRI(NAMESPACE, "AIATSISLanguage");
 
     /* properties */
 

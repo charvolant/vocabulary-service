@@ -8,7 +8,7 @@ import org.eclipse.rdf4j.model.impl.SimpleValueFactory;
  * Language type vocabulary
  *
  * @author Doug Palmer &lt;Doug.Palmer@csiro.au&gt;
- * @copyright Copyright &copy; 2019 Atlas of Living Australia
+ * @license See LICENSE
  */
 public class LanguageType {
     /**

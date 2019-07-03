@@ -46,7 +46,7 @@ class AdminController {
     }
 
     /**
-     * Process ISO-639-3 data from https://iso639-3.sil.org into RDF
+     * Process ISO-639-3 and AIATSIS data from https://iso639-3.sil.org into RDF
      */
     def process639(TranslateCommand cmd) {
         if (!cmd || cmd.hasErrors()) {
@@ -54,6 +54,24 @@ class AdminController {
             return
         }
         Model model = translationService.process639(cmd.nameFile, cmd.macroFile, cmd.tagLanguages, request.locale, cmd.complete)
+        RDFFormat fmt = RDFFormat.matchMIMEType(cmd.format, [RDFFormat.TURTLE, RDFFormat.JSONLD, RDFFormat.RDFXML]).orElse(RDFFormat.TURTLE)
+        response.characterEncoding = "UTF-8"
+        //response.setHeader('Content-Disposition', "Attachment;Filename=\"iso639.${fmt.defaultFileExtension}\"")
+        response.setHeader('Content-Disposition', "inline")
+        response.contentType = fmt.defaultMIMEType
+        Rio.write(model, response.outputStream, fmt)
+    }
+
+
+    /**
+     * Process AIATSIS data into RDF
+     */
+    def processAiatsis(TranslateCommand cmd) {
+        if (!cmd || cmd.hasErrors()) {
+            render view: 'index', model: [cmd: cmd]
+            return
+        }
+        Model model = translationService.processAiatsis(cmd.aiatsisFile, request.locale, cmd.complete)
         RDFFormat fmt = RDFFormat.matchMIMEType(cmd.format, [RDFFormat.TURTLE, RDFFormat.JSONLD, RDFFormat.RDFXML]).orElse(RDFFormat.TURTLE)
         response.characterEncoding = "UTF-8"
         //response.setHeader('Content-Disposition', "Attachment;Filename=\"iso639.${fmt.defaultFileExtension}\"")
@@ -110,6 +128,8 @@ class TranslateCommand implements Validateable {
     MultipartFile nameFile
     /** The TSV file containing macrolangiage definitions */
     MultipartFile macroFile
+    /** The CSV file containing AIATSIS language codes */
+    MultipartFile aiatsisFile
     /** The CSV file containing darwin core terms */
     MultipartFile dwcFile
     /** The CSV file containing ranks */
@@ -134,10 +154,12 @@ class TranslateCommand implements Validateable {
         }
         nameFile nullable: true, validator: fileValidator.curry('iso639')
         macroFile nullable: true, validator: fileValidator.curry('iso639')
+        aiatsisFile nullable: true, validator: fileValidator.curry('aiatsis')
         dwcFile nullable: true, validator: fileValidator.curry('dwc')
         rankFile nullable: true, validator: fileValidator.curry('rank')
         tagLanguages nullable: true, matches: '[a-z]{3}?(,[a-z]{3})*'
         biocacheIndexFields nullable: true, url: true
+        format nullable: true
     }
 }
 

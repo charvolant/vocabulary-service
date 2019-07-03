@@ -66,6 +66,40 @@
     </div>
     <div class="row">
         <div class="col-md-12">
+            <h2><g:message code="label.aiatsis-upload"/></h2>
+            <g:message code="label.aiatsis-upload.detail"/>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-12">
+            <g:uploadForm action="processAiatsis">
+                <g:hiddenField name="translation" value="aiatsis"/>
+                <div class="form-group">
+                    <label for="aiatsisFile"><g:message code="label.aiatsisFile"/></label>
+                    <span class="text-danger"><g:fieldError field="aiatsisFile" bean="${cmd}"/></span>
+                    <g:field id="aiatsisFile" name="aiatsisFile" type="file" required="true" class="form-control" value="${cmd.nameFile}"/>
+                    <p class="help-block"><g:message code="label.aiatsisFile.detail"/></p>
+                </div>
+                <div class="form-group">
+                    <label for="complete-aiatsis" class="form-check-label">
+                        <g:checkBox id="complete-aiatsis" name="complete" value="${cmd.complete}"/>
+                        <g:message code="label.complete"/>
+                        <g:fieldError field="complete" bean="${cmd}"/>
+                    </label>
+                    <p class="help-block"><g:message code="label.complete.detail"/></p>
+                </div>
+                <div class="form-group">
+                    <label for="format-aiatsis"><g:message code="label.format"/></label>
+                    <span class="text-danger"><g:fieldError field="format" bean="${cmd}"/></span>
+                    <g:select id="format-aiatsis" name="format" from="${['text/turtle', 'application/ld+json', 'application/rdf+xml']}" value="${cmd.format}"/>
+                    <p class="help-block"><g:message code="label.format.detail"/></p>
+                </div>
+                <button type="submit" class="btn btn-primary"><g:message code="label.process"/></button>
+            </g:uploadForm>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-12">
             <h2><g:message code="label.dwc-upload"/></h2>
             <g:message code="label.dwc-upload.detail"/>
         </div>

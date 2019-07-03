@@ -8,6 +8,7 @@ import groovy.json.JsonSlurper
 import org.eclipse.rdf4j.model.Model
 import org.eclipse.rdf4j.model.util.ModelBuilder
 import org.eclipse.rdf4j.model.vocabulary.DCTERMS
+import org.eclipse.rdf4j.model.vocabulary.GEO
 import org.eclipse.rdf4j.model.vocabulary.OWL
 import org.eclipse.rdf4j.model.vocabulary.RDF
 import org.eclipse.rdf4j.model.vocabulary.RDFS
@@ -112,6 +113,7 @@ class TranslationService {
                 }
             }
         }
+
         // Read the list of taggable languages
         tagLanguages.split(',').each { code ->
             def lang = languages[code]
@@ -155,6 +157,81 @@ class TranslationService {
         }
         return builder.build()
     }
+    /**
+     * Process AIATSIS name and macro-translation file into RDF
+     *
+     * @param nameFile The name file
+     * @param locale The request locale
+     * @param complete Include all languages
+     *
+     * @return An RDF model of the results
+     */
+    Model processAiatsis(aiatsisFile, Locale locale, boolean complete) {
+        def valueFactory = repositoryService.valueFactory
+        def namespace = ALAVocabulary.NAMESPACE + "aiatsis"
+        def source = valueFactory.createIRI('http://aiatsis.gov.au/')
+        def latitude = valueFactory.createIRI('http://www.w3.org/2003/01/geo/wgs84_pos#lat')
+        def longitude = valueFactory.createIRI('http://www.w3.org/2003/01/geo/wgs84_pos#long')
+        def builder = new ModelBuilder()
+        builder.setNamespace(ALAVocabulary.PREFIX, ALAVocabulary.NAMESPACE)
+        builder.setNamespace(ALA.PREFIX, ALA.NAMESPACE)
+        builder.setNamespace(Format.PREFIX, Format.NAMESPACE)
+        builder.setNamespace(SKOS.PREFIX, SKOS.NAMESPACE)
+        builder.setNamespace(RDF.PREFIX, RDF.NAMESPACE)
+        builder.setNamespace(RDFS.PREFIX, RDFS.NAMESPACE)
+        builder.setNamespace(OWL.PREFIX, OWL.NAMESPACE)
+        builder.setNamespace(DCTERMS.PREFIX, DCTERMS.NAMESPACE)
+        builder.setNamespace(DwcTerm.PREFIX, DwcTerm.NS)
+        def vocabulary = valueFactory.createIRI(namespace)
+        builder.subject(vocabulary)
+        builder.add(RDF.TYPE, SKOS.CONCEPT_SCHEME)
+        builder.add(RDFS.LABEL, messageSource.getMessage('page.admin.processAiatsis.Aiatsis.label', null, locale))
+        builder.add(RDFS.COMMENT, messageSource.getMessage('page.admin.processAiatsis.Aiatsis.comment', null, locale))
+        builder.add(DCTERMS.SOURCE, source)
+
+        def languages = [:]
+        String[] line
+
+
+        // Read the AIATSIS languages
+        reader = new InputStreamReader(aiatsisFile.inputStream, 'UTF-8')
+        csv = new CSVReaderBuilder(reader).withSkipLines(1).withCSVParser(parser).build()
+        while ((line = csv.readNext()) != null) {
+            def code = line[0]
+            def langs = line[1].split(/\s*\/\s*/)
+            def main = langs[0]
+            def synonyms = line[2]?.split(/\s*\/\s*/)
+            def approxLat = line[3]?.toDouble()
+            def approxLong = line[4]?.toDouble()
+            def uri = line[5]?.replaceFirst(/^https:/, 'http:')
+            def iri = valueFactory.createIRI(uri)
+            def alts = (langs + synonyms).findAll({ it && it != main }) as Set
+            def language = [iri: iri, code: code, name: main, alts: alts, tag: true, lat: approxLat, long: approxLong]
+            languages[code] = language
+        }
+
+        // Build the model
+        languages.each { code, lang ->
+            if (lang.tag || complete) {
+                builder.subject(lang.iri)
+                builder.add(RDF.TYPE, ALA.AIATSIS_LANGUAGE)
+                if (lang.tag)
+                    builder.add(RDF.TYPE, Format.LANGUAGE)
+                builder.add(SKOS.IN_SCHEME, vocabulary)
+                builder.add(SKOS.NOTATION, lang.code)
+                builder.add(RDFS.LABEL, lang.name)
+                lang.alts.each { alt -> builder.add(SKOS.ALT_LABEL, alt)}
+                if (lang.comment)
+                    builder.add(RDFS.COMMENT, lang.comment)
+                builder.add(DCTERMS.SOURCE, source)
+                if (lang.lat)
+                    builder.add(latitude, lang.lat)
+                if (lang.long)
+                    builder.add(longitude, lang.long)
+             }
+        }
+        return builder.build()
+    }
 
     /**
      * Process an DwC description
@@ -179,6 +256,7 @@ class TranslationService {
         builder.setNamespace(RDFS.PREFIX, RDFS.NAMESPACE)
         builder.setNamespace(OWL.PREFIX, OWL.NAMESPACE)
         builder.setNamespace(DCTERMS.PREFIX, DCTERMS.NAMESPACE)
+        builder.setNamespace(DwcTerm.PREFIX, DwcTerm.NS)
         def dwcVocabulary = valueFactory.createIRI('http://rs.tdwg.org/dwc/terms')
         builder.subject(dwcVocabulary)
         builder.add(RDF.TYPE, SKOS.CONCEPT_SCHEME)
@@ -371,6 +449,7 @@ class TranslationService {
         builder.setNamespace(RDFS.PREFIX, RDFS.NAMESPACE)
         builder.setNamespace(OWL.PREFIX, OWL.NAMESPACE)
         builder.setNamespace(DCTERMS.PREFIX, DCTERMS.NAMESPACE)
+        builder.setNamespace(DwcTerm.PREFIX, DwcTerm.NS)
         def rankVocabulary = valueFactory.createIRI('http://www.ala.org.au/vocabulary/1.0/taxonRanks')
         def rankSource = valueFactory.createIRI('https://github.com/AtlasOfLivingAustralia/ala-name-matching/blob/master/src/main/java/au/org/ala/names/model/RankType.java')
         builder.subject(rankVocabulary)
